@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f6f54">
+<meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Calorie Snap</title>
+<title>MA</title>
 <style>
-:root{--bg:#f2f5f3;--ink:#14201b;--mute:#5f6f67;--card:#fff;--line:#d9e2dd;--accent:#1f6f54;--on:#fff;--warn:#b3261e;color-scheme:light}
-@media(prefers-color-scheme:dark){:root{--bg:#101714;--ink:#e8f0ec;--mute:#93a39b;--card:#18221d;--line:#2a3a33;--accent:#4cc39a;--on:#06251a;--warn:#ff8a80;color-scheme:dark}}
+:root{--bg:#ffffff;--ink:#000000;--mute:#6b7685;--card:#fff;--line:#e3e8ef;--accent:#2f80ed;--on:#fff;--warn:#e5383b;color-scheme:light}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
@@ -26,6 +25,8 @@ button{cursor:pointer}
 .tabs button.on{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
 .top{display:flex;justify-content:space-between;align-items:center;padding:14px 0 6px}
 .top h1{font-size:18px;margin:0;font-weight:650}
+.top .brand h1{font-size:30px;font-weight:800;letter-spacing:-.5px;line-height:1;margin:0}
+.brand span{display:block;font-size:12px;font-weight:600;margin-top:3px}
 .icon-btn{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--mute)}
 .datenav{display:flex;align-items:center;gap:8px;margin:4px 0}
 .datenav .a{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:22px;line-height:1}
@@ -38,8 +39,10 @@ button{cursor:pointer}
 .total .unit{font-size:18px;color:var(--mute);margin-left:6px;letter-spacing:0;font-weight:500}
 .sub{color:var(--mute);margin-top:6px}
 .bar{height:8px;border-radius:4px;background:var(--line);margin-top:10px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--accent)}
-.bar.over i{background:var(--warn)}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .5s ease,background-color .5s ease}
+.barline{display:flex;align-items:center;gap:8px;margin-top:10px}
+.barline .bar{flex:1;margin-top:0}
+.cmp{font-size:13px;color:var(--mute);min-width:58px;text-align:right;font-variant-numeric:tabular-nums}
 .mrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin-bottom:10px}
 .mrow .bar{grid-column:1/-1;margin-top:2px;height:6px}
 .snap{display:block;width:100%;margin:16px 0 6px;padding:18px;border:0;border-radius:18px;background:var(--accent);color:var(--on);font-size:19px;font-weight:650}
@@ -99,11 +102,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <div class="sub" id="mSum"></div>
   <div class="dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
   <div class="grid" id="grid"></div>
-  <p class="fine">Tap a day to open it. Green is within your goal, red is over.</p>
+  <p class="fine">Tap a day to open it. Blue is under your goal, orange is close, red is over.</p>
 </div></section>
 
 <section class="page" id="pDay"><div>
-  <div class="top"><h1>Calorie Snap</h1><button class="icon-btn" id="settingsBtn">Settings</button></div>
+  <div class="top"><div class="brand"><h1>MA</h1><span>Meal Assistant</span></div><button class="icon-btn" id="settingsBtn">Settings</button></div>
   <div class="datenav">
     <button class="a" id="dPrev" aria-label="Previous day">‹</button>
     <button class="d" id="dateBtn"></button>
@@ -112,8 +115,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   </div>
   <section class="total" aria-live="polite">
     <div><span class="num" id="dayNum">0</span><span class="unit" id="unitTxt">kcal</span></div>
-    <div class="sub" id="daySub"></div>
-    <div class="bar" id="bar"><i></i></div>
+    <div class="barline" id="barline"><div class="bar" id="bar"><i></i></div><span class="cmp" id="cmp"></span></div>
   </section>
   <section class="card" id="macros"></section>
   <button class="snap" id="snapBtn">Snap a meal</button>
@@ -166,6 +168,14 @@ const toDate = k => new Date(k + 'T12:00');
 const addDays = (k, n) => { const d = toDate(k); d.setDate(d.getDate() + n); return dayKey(d); };
 let sel = today(), cal = new Date(); cal.setDate(1);
 const r0 = n => Math.round(n || 0);
+const STOPS = [[.75, [47,128,237]], [1, [245,158,11]], [1.2, [229,56,59]]];
+function barColor(r){
+  r = r > 0 ? r : 0;
+  const rgb = c => `rgb(${c.map(Math.round)})`;
+  if (r <= STOPS[0][0]) return rgb(STOPS[0][1]);
+  for (let i = 1; i < STOPS.length; i++) if (r <= STOPS[i][0]) { const [a, ca] = STOPS[i-1], [b, cb] = STOPS[i], t = (r - a) / (b - a); return rgb(ca.map((v, j) => v + (cb[j] - v) * t)); }
+  return rgb(STOPS[STOPS.length - 1][1]);
+}
 const sum = items => r0(items.reduce((a, i) => a + (+i.kcal || 0), 0));
 
 let tm;
@@ -195,11 +205,14 @@ function renderDay(by){
   $('dNext').disabled = sel >= today();
   $('dayNum').textContent = r0(t.kcal).toLocaleString();
   $('unitTxt').textContent = sel === today() ? 'kcal today' : 'kcal';
-  $('daySub').textContent = goal ? (t.kcal <= goal ? `${r0(goal - t.kcal).toLocaleString()} left of ${goal.toLocaleString()}` : `${r0(t.kcal - goal).toLocaleString()} over ${goal.toLocaleString()}`) : '';
-  $('bar').hidden = !goal;
-  $('bar').className = 'bar' + (t.kcal > goal ? ' over' : '');
-  $('bar').firstElementChild.style.width = goal ? Math.min(100, t.kcal / goal * 100) + '%' : '0';
-  $('macros').innerHTML = M.map(f => `<div class="mrow"><span>${NAME[f]}</span><b>${r0(t[f])} / ${r0(tg[f])} g</b><div class="bar"><i style="width:${Math.min(100, t[f] / tg[f] * 100)}%"></i></div></div>`).join('');
+  $('barline').hidden = !goal;
+  if (goal) {
+    const fill = $('bar').firstElementChild, kc = r0(t.kcal);
+    fill.style.width = Math.min(100, t.kcal / goal * 100) + '%';
+    fill.style.background = barColor(t.kcal / goal);
+    $('cmp').textContent = (kc < goal ? '<' : kc > goal ? '>' : '=') + ' ' + goal.toLocaleString();
+  }
+  $('macros').innerHTML = M.map(f => `<div class="mrow"><span>${NAME[f]}</span><b>${r0(t[f])} / ${r0(tg[f])} g</b><div class="bar"><i style="width:${Math.min(100, t[f] / tg[f] * 100)}%;background:${barColor(t[f] / tg[f])}"></i></div></div>`).join('');
   const list = meals.filter(m => m.day === sel).sort((a, b) => b.ts - a.ts);
   $('log').innerHTML = list.length ? list.map(m => `
     <div class="meal"><img class="thumb" alt="" src="${m.thumb || ''}">
@@ -216,7 +229,7 @@ function renderCal(by){
   for (let d = 1, e = new Date(y, mo + 1, 0).getDate(); d <= e; d++) {
     const k = dayKey(new Date(y, mo, d)), t = by[k], kc = t ? r0(t.kcal) : 0;
     if (t) { tot += kc; n++; }
-    h += `<button class="cell${t ? (goal && kc > goal ? ' over' : ' ok') : ''}${k === today() ? ' now' : ''}" data-k="${k}"><span>${d}</span><em>${t ? kc : ''}</em></button>`;
+    h += `<button class="cell${k === today() ? ' now' : ''}" data-k="${k}"${t ? ` style="background:color-mix(in srgb,${barColor(kc / (goal || 2000))} 22%,var(--card))"` : ''}><span>${d}</span><em>${t ? kc : ''}</em></button>`;
   }
   $('grid').innerHTML = h;
   $('mSum').textContent = n ? `${tot.toLocaleString()} kcal this month, ${r0(tot / n).toLocaleString()} a day on ${n} logged day${n > 1 ? 's' : ''}.` : 'No meals logged this month.';
@@ -247,9 +260,9 @@ function renderIns(by){
     $('insStats').innerHTML = '<div class="empty">Log a few meals to see your averages here.</div>';
     $('chart').innerHTML = ''; $('recs').innerHTML = '<div class="card empty">Tips will appear once you have logged meals.</div>'; return;
   }
-  $('insStats').innerHTML = '<h2>Average per day</h2>' + K.map(f => `<div class="mrow"><span>${f === 'kcal' ? 'Calories' : NAME[f]}</span><b>${r0(a[f])} / ${r0(tg[f])} ${f === 'kcal' ? 'kcal' : 'g'}</b><div class="bar"><i style="width:${Math.min(100, a[f] / tg[f] * 100)}%"></i></div></div>`).join('');
+  $('insStats').innerHTML = '<h2>Average per day</h2>' + K.map(f => `<div class="mrow"><span>${f === 'kcal' ? 'Calories' : NAME[f]}</span><b>${r0(a[f])} / ${r0(tg[f])} ${f === 'kcal' ? 'kcal' : 'g'}</b><div class="bar"><i style="width:${Math.min(100, a[f] / tg[f] * 100)}%;background:${barColor(a[f] / tg[f])}"></i></div></div>`).join('');
   const mx = Math.max(goal * 1.2, ...days.map(k => by[k] ? by[k].kcal : 0), 1);
-  $('chart').innerHTML = days.map(k => `<i class="${by[k] && goal && by[k].kcal > goal ? 'o' : ''}" style="height:${by[k] ? by[k].kcal / mx * 100 : 0}%" title="${k}"></i>`).join('');
+  $('chart').innerHTML = days.map(k => `<i style="height:${by[k] ? by[k].kcal / mx * 100 : 0}%;background:${barColor(by[k] ? by[k].kcal / (goal || 2000) : 0)}" title="${k}"></i>`).join('');
   $('recs').innerHTML = recs(a, tg).map(x => `<div class="card rec"><b>${x[0]}</b>${x[1]}</div>`).join('');
 }
 
