@@ -36,6 +36,10 @@ button{cursor:pointer}
 .mbtn.on,.cell.sel{background:var(--accent);color:var(--on);font-weight:650}
 .cell:disabled{opacity:.3}
 .sum div{margin:3px 0}
+.mright{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.qty{display:inline-flex;align-items:center;gap:8px;font-weight:650}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:18px;line-height:1;padding:0}
+.qty span{min-width:20px;text-align:center}
 .overlay{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding:env(safe-area-inset-top,0) 16px calc(24px + env(safe-area-inset-bottom,0))}
 .overlay>div{max-width:480px;margin:0 auto}
 .icon-btn{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--mute)}
@@ -210,7 +214,7 @@ function byDay(){
   for (const m of meals) {
     const t = o[m.day] || (o[m.day] = { kcal:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0 });
     t.kcal += m.kcal;
-    for (const i of m.items) for (const f of M) t[f] += +i[f] || 0;
+    for (const i of m.items) for (const f of M) t[f] += (+i[f] || 0) * (m.qty || 1);
   }
   return o;
 }
@@ -236,15 +240,16 @@ function renderDay(by){
   $('macros').innerHTML = M.map(f => `<div class="mrow"><span>${NAME[f]}</span><b>${r0(t[f])} / ${r0(tg[f])} g</b><div class="bar"><i style="width:${Math.min(100, t[f] / tg[f] * 100)}%;background:${barColor(t[f] / tg[f])}"></i></div></div>`).join('');
   const list = meals.filter(m => m.day === sel).sort((a, b) => b.ts - a.ts);
   $('log').innerHTML = list.length ? list.map(m => {
-    const open = openMeals.has(m.id), tot = {};
-    M.forEach(f => tot[f] = r0(m.items.reduce((a, i) => a + (+i[f] || 0), 0)));
+    const open = openMeals.has(m.id), q = m.qty || 1, tot = {};
+    M.forEach(f => tot[f] = r0(m.items.reduce((a, i) => a + (+i[f] || 0), 0) * q));
     const det = open ? `<div class="det">${m.thumb ? `<img class="thumb" alt="" src="${m.thumb}">` : ''}
-      ${m.items.map(i => `<div class="drow"><span>${esc(i.name || 'Item')}</span><span>${r0(i.grams)} g, ${r0(i.kcal)} kcal</span></div>`).join('')}
+      ${m.items.map(i => `<div class="drow"><span>${esc(i.name || 'Item')}</span><span>${r0(i.grams * q)} g, ${r0(i.kcal * q)} kcal</span></div>`).join('')}
       <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
       <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
-      <div class="kcal">${m.kcal} kcal</div>
+      <div class="mright"><div class="kcal">${m.kcal} kcal</div>
+        <div class="qty"><button data-q="${m.id}" data-dir="-1" aria-label="Decrease quantity">−</button><span>${q}</span><button data-q="${m.id}" data-dir="1" aria-label="Increase quantity">+</button></div></div>
       <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
   }).join('') : '<div class="empty">No meals logged for this day.</div>';
 }
@@ -309,8 +314,12 @@ $('mNext').onclick = () => { cal.setMonth(cal.getMonth() + 1); render(); };
 $('grid').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { sel = b.dataset.k; render(); goto(1); } };
 $('seg').onclick = e => { if (e.target.dataset.r) { range = +e.target.dataset.r; render(); } };
 $('log').onclick = e => {
-  const d = e.target.dataset.d, id = e.target.dataset.id;
-  if (d) { const n = +d; openMeals.has(n) ? openMeals.delete(n) : openMeals.add(n); render(); }
+  const d = e.target.dataset.d, id = e.target.dataset.id, qid = e.target.dataset.q;
+  if (qid) {
+    const m = meals.find(x => String(x.id) === qid);
+    if (m) { m.qty = Math.min(99, Math.max(1, (m.qty || 1) + +e.target.dataset.dir)); m.kcal = Math.round(sum(m.items) * m.qty); LS.set('cs_meals', meals); render(); }
+  }
+  else if (d) { const n = +d; openMeals.has(n) ? openMeals.delete(n) : openMeals.add(n); render(); }
   else if (id && confirm('Delete this meal?')) { meals = meals.filter(m => String(m.id) !== id); LS.set('cs_meals', meals); render(); }
 };
 
@@ -354,8 +363,9 @@ $('picker').onclick = e => {
 };
 
 /* ---------- Meal card ---------- */
+const dq = () => (draft && draft.qty) || 1;
 const rate = it => { it.r = {}; if (it.grams > 0) K.forEach(k => it.r[k] = (+it[k] || 0) / it.grams); };
-const macroLine = () => M.slice(0, 3).map(f => `${NAME[f]} ${r0(draft.items.reduce((a, i) => a + (+i[f] || 0), 0))} g`).join(', ');
+const macroLine = () => M.slice(0, 3).map(f => `${NAME[f]} ${r0(draft.items.reduce((a, i) => a + (+i[f] || 0), 0) * dq())} g`).join(', ');
 function renderDraft(){
   if (!draft) { $('draft').innerHTML = ''; return; }
   $('draft').innerHTML = `
@@ -369,7 +379,8 @@ function renderDraft(){
       <button class="x" data-rm="${n}" aria-label="Remove item">×</button>
     </div>`).join('')}
     <button class="link" id="addItem">Add item</button>
-    <div class="draft-total"><span>Total</span><span id="draftTotal">${sum(draft.items)} kcal</span></div>
+    <div class="draft-total"><span>Quantity</span><span class="qty"><button data-dq="-1" aria-label="Decrease quantity">−</button><span id="dqn">${dq()}</span><button data-dq="1" aria-label="Increase quantity">+</button></span></div>
+    <div class="draft-total"><span>Total</span><span id="draftTotal">${sum(draft.items) * dq()} kcal</span></div>
     <div class="fine" id="draftMacros">${macroLine()}</div>
     <div class="btns"><button id="discard">Discard</button><button class="primary" id="saveMeal">Save meal</button></div>
   </div>`;
@@ -384,20 +395,21 @@ $('draft').addEventListener('input', e => {
     if (it.r && Object.keys(it.r).length) { K.forEach(k => it[k] = Math.round((it.r[k] || 0) * it.grams * 10) / 10); t.parentElement.querySelector('[data-f=kcal]').value = r0(it.kcal); }
   }
   if (f === 'kcal') { it.kcal = +t.value || 0; if (it.grams > 0) { it.r = it.r || {}; it.r.kcal = it.kcal / it.grams; } }
-  $('draftTotal').textContent = sum(draft.items) + ' kcal';
+  $('draftTotal').textContent = sum(draft.items) * dq() + ' kcal';
   $('draftMacros').textContent = macroLine();
 });
 const blank = () => ({ name:'', grams:0, kcal:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0 });
 $('draft').addEventListener('click', e => {
   const t = e.target;
   if (t.dataset.rm !== undefined) { draft.items.splice(+t.dataset.rm, 1); renderDraft(); }
+  else if (t.dataset.dq) { draft.qty = Math.min(99, Math.max(1, dq() + +t.dataset.dq)); $('dqn').textContent = draft.qty; $('draftTotal').textContent = sum(draft.items) * draft.qty + ' kcal'; $('draftMacros').textContent = macroLine(); }
   else if (t.id === 'addItem') { draft.items.push(blank()); renderDraft(); }
   else if (t.id === 'discard') { draft = null; renderDraft(); show(''); }
   else if (t.id === 'saveMeal') {
     const items = draft.items.filter(i => i.name.trim() || i.kcal);
     if (!items.length) { show('Add at least one food before saving.', true); return; }
     const ts = (() => { const d = toDate(sel), n = new Date(); d.setHours(n.getHours(), n.getMinutes(), n.getSeconds()); return d.getTime(); })();
-    meals.push({ id: Date.now(), ts, day: sel, kcal: sum(items), thumb: draft.thumb || '',
+    meals.push({ id: Date.now(), ts, day: sel, kcal: sum(items) * dq(), qty: dq(), thumb: draft.thumb || '',
       items: items.map(i => { const o = { name: i.name, grams: i.grams }; K.forEach(k => o[k] = Math.round((+i[k] || 0) * 10) / 10); return o; }) });
     LS.set('cs_meals', meals); draft = null; renderDraft(); show(''); render();
   }
