@@ -36,6 +36,7 @@ button{cursor:pointer}
 .mbtn.on,.cell.sel{background:var(--accent);color:var(--on);font-weight:650}
 .cell:disabled{opacity:.3}
 .sum div{margin:3px 0}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
 .mright{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .qty{display:inline-flex;align-items:center;gap:8px;font-weight:650}
 .qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:18px;line-height:1;padding:0}
@@ -151,7 +152,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <section class="card"><h2>Calories per day</h2><div class="chart" id="chart"></div></section>
   <div class="h2" style="margin-top:18px">What to eat</div>
   <div id="recs"></div>
-  <p class="fine">Tips assume you log every meal. Targets are generic (20% protein, 50% carbs, 30% fat of your goal). This is not medical advice.</p>
+  <p class="fine">Tips assume you log every meal. Targets come from Settings, or default to 20% protein, 50% carbs and 30% fat of your goal. This is not medical advice.</p>
 </div></section>
 
 </div>
@@ -169,6 +170,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <p class="fine">For faster estimates, try gemini-3.5-flash-lite.</p>
   <label class="f" for="goal">Daily goal (kcal)</label>
   <input id="goal" type="number" inputmode="numeric">
+  <label class="f">Daily nutrient targets (g)</label>
+  <div class="tgrid">
+    <div><label class="f" for="t_protein">Protein</label><input id="t_protein" type="number" inputmode="numeric"></div>
+    <div><label class="f" for="t_carbs">Carbs</label><input id="t_carbs" type="number" inputmode="numeric"></div>
+    <div><label class="f" for="t_fat">Fat</label><input id="t_fat" type="number" inputmode="numeric"></div>
+    <div><label class="f" for="t_fiber">Fiber</label><input id="t_fiber" type="number" inputmode="numeric"></div>
+    <div><label class="f" for="t_sugar">Sugar</label><input id="t_sugar" type="number" inputmode="numeric"></div>
+  </div>
+  <p class="fine">Leave a box empty to use the default.</p>
   <label class="f">Appearance</label>
   <div class="seg" id="themeSeg"><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
   <div class="btns"><button class="primary" id="saveSettings">Save settings</button></div>
@@ -218,7 +228,8 @@ function byDay(){
   }
   return o;
 }
-const targets = () => { const k = +cfg.goal || 2000; return { kcal:k, protein:k*.2/4, carbs:k*.5/4, fat:k*.3/9, fiber:28, sugar:50 }; };
+const defTargets = k => ({ kcal:k, protein:k*.2/4, carbs:k*.5/4, fat:k*.3/9, fiber:28, sugar:50 });
+const targets = () => { const d = defTargets(+cfg.goal || 2000), u = cfg.tg || {}; M.forEach(f => { if (+u[f] > 0) d[f] = +u[f]; }); return d; };
 const label = k => k === today() ? 'Today' : k === addDays(today(), -1) ? 'Yesterday' : toDate(k).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
 
 /* ---------- render ---------- */
@@ -480,12 +491,12 @@ async function analyze(dataUrl){
 
 /* ---------- Settings ---------- */
 const markTheme = () => document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === (cfg.theme === 'dark' ? 'dark' : 'light')));
-function openSettings(){ $('key').value = cfg.key; $('model').value = cfg.model; $('goal').value = cfg.goal; markTheme(); $('settingsView').hidden = false; $('settingsView').scrollTop = 0; }
+function openSettings(){ $('key').value = cfg.key; $('model').value = cfg.model; $('goal').value = cfg.goal; { const d = defTargets(+cfg.goal || 2000), u = cfg.tg || {}; M.forEach(f => { $('t_' + f).value = u[f] || ''; $('t_' + f).placeholder = r0(d[f]); }); } markTheme(); $('settingsView').hidden = false; $('settingsView').scrollTop = 0; }
 $('settingsBtn').onclick = openSettings;
 $('backBtn').onclick = () => { $('settingsView').hidden = true; };
 $('themeSeg').onclick = e => { if (e.target.dataset.t) { cfg.theme = e.target.dataset.t; LS.set('cs_cfg', cfg); applyTheme(); markTheme(); } };
 $('saveSettings').onclick = () => {
-  cfg = { ...cfg, key: $('key').value.trim(), model: $('model').value.trim() || 'gemini-3.5-flash-lite', goal: +$('goal').value || 0 };
+  cfg = { ...cfg, key: $('key').value.trim(), model: $('model').value.trim() || 'gemini-3.5-flash-lite', goal: +$('goal').value || 0, tg: Object.fromEntries(M.map(f => [f, +$('t_' + f).value || 0])) };
   LS.set('cs_cfg', cfg); $('settingsView').hidden = true; render();
 };
 
