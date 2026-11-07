@@ -78,7 +78,9 @@ button{cursor:pointer}
 .thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--line);flex:none}
 .meal{padding:10px 0;border-top:1px solid var(--line)}
 .mtop{display:flex;gap:12px;align-items:center}
-.mtop>.dl{flex:none;padding:0}
+.meal .time{display:flex;align-items:center;gap:8px}
+.meal .time .dl{padding:4px 0}
+.dl.ed{margin-left:auto}
 .dl{background:none;border:0;padding:0 0 0 6px;color:var(--accent);font-size:13px;text-decoration:underline}
 .det{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 .drow{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:4px 0}
@@ -261,8 +263,7 @@ function renderDay(by){
       <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
-      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
-      <button class="dl" data-e="${m.id}">Edit</button>
+      <div class="time"><span>${fmtTime(m.ts)}</span><button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button><button class="dl ed" data-e="${m.id}">Edit</button></div></div>
       <div class="mright"><div class="kcal">${m.kcal} kcal</div>
         <div class="qty"><button data-q="${m.id}" data-dir="-1" aria-label="Decrease quantity">−</button><span>${q}</span><button data-q="${m.id}" data-dir="1" aria-label="Increase quantity">+</button></div></div>
       <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
