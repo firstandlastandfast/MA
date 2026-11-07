@@ -82,8 +82,12 @@ button{cursor:pointer}
 .meal .time .dl{padding:4px 0}
 .dl{background:none;border:0;padding:0 0 0 6px;color:var(--accent);font-size:13px;text-decoration:underline}
 .det{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
-.drow{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:4px 0}
-.det .thumb{margin-bottom:6px}
+.drow{font-size:14px;margin:0 0 6px}
+.det{display:flex;gap:12px;align-items:flex-start}
+.det .photo{flex:none;width:36%;max-width:140px;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.dtxt{flex:1;min-width:0}
+.dn{margin-top:8px;font-size:14px}
+.dn div{margin:2px 0}
 .meal:first-of-type{border-top:0}
 .meal .info{flex:1;min-width:0}
 .meal .names{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -260,9 +264,9 @@ function renderDay(by){
   $('log').innerHTML = list.length ? list.map(m => {
     const open = openMeals.has(m.id), q = m.qty || 1, tot = {};
     M.forEach(f => tot[f] = r0(m.items.reduce((a, i) => a + (+i[f] || 0), 0) * q));
-    const det = open ? `<div class="det">${m.thumb ? `<img class="thumb" alt="" src="${m.thumb}">` : ''}
-      ${m.items.map(i => `<div class="drow"><span>${esc(i.name || 'Item')}</span><span>${r0(i.grams * q)} g, ${r0(i.kcal * q)} kcal</span></div>`).join('')}
-      <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
+    const det = open ? `<div class="det">${m.thumb ? `<img class="photo" alt="Meal photo" src="${m.thumb}">` : ''}<div class="dtxt">
+      ${m.items.map(i => `<div class="drow">${esc(i.name || 'Item')}: ${r0(i.grams * q)} g, ${r0(i.kcal * q)} kcal</div>`).join('')}
+      <div class="dn">${M.map(f => `<div>${NAME[f]} ${tot[f]} g</div>`).join('')}</div></div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
       <div class="time"><span>${fmtTime(m.ts)}</span><button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
@@ -464,7 +468,7 @@ function shrink(file){
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
       const draw = (max, q) => { const s = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', q); };
-      const out = { full: draw(768, .7), thumb: draw(120, .6) }; URL.revokeObjectURL(url); res(out);
+      const out = { full: draw(768, .7), thumb: draw(160, .6) }; URL.revokeObjectURL(url); res(out);
     };
     img.onerror = () => rej(new Error('Could not read that photo.'));
     img.src = url;
