@@ -80,7 +80,6 @@ button{cursor:pointer}
 .mtop{display:flex;gap:12px;align-items:center}
 .meal .time{display:flex;align-items:center;gap:8px}
 .meal .time .dl{padding:4px 0}
-.dl.ed{margin-left:auto}
 .dl{background:none;border:0;padding:0 0 0 6px;color:var(--accent);font-size:13px;text-decoration:underline}
 .det{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 .drow{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:4px 0}
@@ -263,7 +262,7 @@ function renderDay(by){
       <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
-      <div class="time"><span>${fmtTime(m.ts)}</span><button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button><button class="dl ed" data-e="${m.id}">Edit</button></div></div>
+      <div class="time"><span>${fmtTime(m.ts)}</span><button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
       <div class="mright"><div class="kcal">${m.kcal} kcal</div>
         <div class="qty"><button data-q="${m.id}" data-dir="-1" aria-label="Decrease quantity">−</button><span>${q}</span><button data-q="${m.id}" data-dir="1" aria-label="Increase quantity">+</button></div></div>
       <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
@@ -330,14 +329,10 @@ $('mNext').onclick = () => { cal.setMonth(cal.getMonth() + 1); render(); };
 $('grid').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { sel = b.dataset.k; render(); goto(1); } };
 $('seg').onclick = e => { if (e.target.dataset.r) { range = +e.target.dataset.r; render(); } };
 $('log').onclick = e => {
-  const d = e.target.dataset.d, id = e.target.dataset.id, qid = e.target.dataset.q, eid = e.target.dataset.e;
+  const d = e.target.dataset.d, id = e.target.dataset.id, qid = e.target.dataset.q;
   if (qid) {
     const m = meals.find(x => String(x.id) === qid);
     if (m) { m.qty = Math.min(99, Math.max(1, (m.qty || 1) + +e.target.dataset.dir)); m.kcal = Math.round(sum(m.items) * m.qty); LS.set('cs_meals', meals); render(); }
-  }
-  else if (eid) {
-    const m = meals.find(x => String(x.id) === eid);
-    if (m) { const items = JSON.parse(JSON.stringify(m.items)); items.forEach(rate); draft = { items, thumb: m.thumb || '', qty: m.qty || 1, editId: m.id }; show(''); renderDraft(); $('draft').scrollIntoView({ behavior:'smooth', block:'center' }); }
   }
   else if (d) { const n = +d; openMeals.has(n) ? openMeals.delete(n) : openMeals.add(n); render(); }
   else if (id && confirm('Delete this meal?')) { meals = meals.filter(m => String(m.id) !== id); LS.set('cs_meals', meals); render(); }
