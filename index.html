@@ -465,7 +465,7 @@ $('backBtn').onclick = () => { $('settingsView').hidden = true; };
 $('themeSeg').onclick = e => { if (e.target.dataset.t) { cfg.theme = e.target.dataset.t; LS.set('cs_cfg', cfg); applyTheme(); markTheme(); } };
 $('saveSettings').onclick = () => {
   cfg = { ...cfg, key: $('key').value.trim(), model: $('model').value.trim() || 'gemini-3.5-flash-lite', goal: +$('goal').value || 0 };
-  LS.set('cs_cfg', cfg); $('settingsView').hidden = true; show('Settings saved.'); render();
+  LS.set('cs_cfg', cfg); $('settingsView').hidden = true; render();
 };
 
 render(); goto(1, false);
