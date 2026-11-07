@@ -43,6 +43,7 @@ button{cursor:pointer}
 .qty span{min-width:20px;text-align:center}
 .overlay{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding:env(safe-area-inset-top,0) 16px calc(24px + env(safe-area-inset-bottom,0))}
 .overlay>div{max-width:480px;margin:0 auto}
+#settingsBtn{border:0;color:var(--ink);font-weight:650;padding:6px 0}
 .icon-btn{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--mute)}
 .datenav{display:flex;align-items:center;gap:8px;margin:4px 0}
 .datenav .a{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:22px;line-height:1}
@@ -77,6 +78,7 @@ button{cursor:pointer}
 .thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--line);flex:none}
 .meal{padding:10px 0;border-top:1px solid var(--line)}
 .mtop{display:flex;gap:12px;align-items:center}
+.mtop>.dl{flex:none;padding:0}
 .dl{background:none;border:0;padding:0 0 0 6px;color:var(--accent);font-size:13px;text-decoration:underline}
 .det{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 .drow{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:4px 0}
@@ -100,7 +102,8 @@ label.f{display:block;margin:10px 0 4px;color:var(--mute);font-size:14px}
 .cell em{font-style:normal;font-size:11px;color:var(--mute);min-height:14px}
 .cell.ok{background:color-mix(in srgb,var(--accent) 20%,var(--card))}
 .cell.over{background:color-mix(in srgb,var(--warn) 22%,var(--card))}
-.cell.now{outline:2px solid var(--accent)}
+.cell.now{border:2px solid #22c55e}
+.cell.pick{box-shadow:0 0 0 2px var(--ink)}
 .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:10px 0}
 .seg button{flex:1;padding:10px;background:var(--card);border:0}
 .seg button.on{background:var(--accent);color:var(--on);font-weight:650}
@@ -258,7 +261,8 @@ function renderDay(by){
       <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
-      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button><button class="dl" data-e="${m.id}">Edit</button></div></div>
+      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
+      <button class="dl" data-e="${m.id}">Edit</button>
       <div class="mright"><div class="kcal">${m.kcal} kcal</div>
         <div class="qty"><button data-q="${m.id}" data-dir="-1" aria-label="Decrease quantity">−</button><span>${q}</span><button data-q="${m.id}" data-dir="1" aria-label="Increase quantity">+</button></div></div>
       <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
@@ -272,7 +276,7 @@ function renderCal(by){
   for (let d = 1, e = new Date(y, mo + 1, 0).getDate(); d <= e; d++) {
     const k = dayKey(new Date(y, mo, d)), t = by[k], kc = t ? r0(t.kcal) : 0;
     if (t) { tot += kc; n++; }
-    h += `<button class="cell${k === today() ? ' now' : ''}" data-k="${k}"${t ? ` style="background:color-mix(in srgb,${barColor(kc / (goal || 2000))} 22%,var(--card))"` : ''}><span>${d}</span><em>${t ? kc : ''}</em></button>`;
+    h += `<button class="cell${k === today() ? ' now' : ''}${k === sel ? ' pick' : ''}" data-k="${k}"${t ? ` style="background:color-mix(in srgb,${barColor(kc / (goal || 2000))} 50%,var(--card))"` : ''}><span>${d}</span><em>${t ? kc : ''}</em></button>`;
   }
   $('grid').innerHTML = h;
   $('mSum').innerHTML = n ? `<h2>This month</h2><div>Total: <b>${tot.toLocaleString()} kcal</b></div><div>Average: <b>${r0(tot / n).toLocaleString()} kcal a day</b></div><div>Days logged: <b>${n}</b></div>` : '<h2>This month</h2><div class="empty">No meals logged this month.</div>';
