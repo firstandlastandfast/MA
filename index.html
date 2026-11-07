@@ -247,7 +247,7 @@ function renderDay(by){
       <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
     return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
-      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
+      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button><button class="dl" data-e="${m.id}">Edit</button></div></div>
       <div class="mright"><div class="kcal">${m.kcal} kcal</div>
         <div class="qty"><button data-q="${m.id}" data-dir="-1" aria-label="Decrease quantity">−</button><span>${q}</span><button data-q="${m.id}" data-dir="1" aria-label="Increase quantity">+</button></div></div>
       <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
@@ -314,10 +314,14 @@ $('mNext').onclick = () => { cal.setMonth(cal.getMonth() + 1); render(); };
 $('grid').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { sel = b.dataset.k; render(); goto(1); } };
 $('seg').onclick = e => { if (e.target.dataset.r) { range = +e.target.dataset.r; render(); } };
 $('log').onclick = e => {
-  const d = e.target.dataset.d, id = e.target.dataset.id, qid = e.target.dataset.q;
+  const d = e.target.dataset.d, id = e.target.dataset.id, qid = e.target.dataset.q, eid = e.target.dataset.e;
   if (qid) {
     const m = meals.find(x => String(x.id) === qid);
     if (m) { m.qty = Math.min(99, Math.max(1, (m.qty || 1) + +e.target.dataset.dir)); m.kcal = Math.round(sum(m.items) * m.qty); LS.set('cs_meals', meals); render(); }
+  }
+  else if (eid) {
+    const m = meals.find(x => String(x.id) === eid);
+    if (m) { const items = JSON.parse(JSON.stringify(m.items)); items.forEach(rate); draft = { items, thumb: m.thumb || '', qty: m.qty || 1, editId: m.id }; show(''); renderDraft(); $('draft').scrollIntoView({ behavior:'smooth', block:'center' }); }
   }
   else if (d) { const n = +d; openMeals.has(n) ? openMeals.delete(n) : openMeals.add(n); render(); }
   else if (id && confirm('Delete this meal?')) { meals = meals.filter(m => String(m.id) !== id); LS.set('cs_meals', meals); render(); }
@@ -369,7 +373,7 @@ const macroLine = () => M.slice(0, 3).map(f => `${NAME[f]} ${r0(draft.items.redu
 function renderDraft(){
   if (!draft) { $('draft').innerHTML = ''; return; }
   $('draft').innerHTML = `
-  <div class="card"><h2>Check this meal for ${esc(label(sel))}</h2>
+  <div class="card"><h2>${draft.editId ? 'Edit this meal' : 'Check this meal for ' + esc(label(sel))}</h2>
     <div class="row head"><span>Food</span><span>Grams</span><span>kcal</span><span></span></div>
     ${draft.items.map((it, n) => `
     <div class="row">
@@ -382,7 +386,7 @@ function renderDraft(){
     <div class="draft-total"><span>Quantity</span><span class="qty"><button data-dq="-1" aria-label="Decrease quantity">−</button><span id="dqn">${dq()}</span><button data-dq="1" aria-label="Increase quantity">+</button></span></div>
     <div class="draft-total"><span>Total</span><span id="draftTotal">${sum(draft.items) * dq()} kcal</span></div>
     <div class="fine" id="draftMacros">${macroLine()}</div>
-    <div class="btns"><button id="discard">Discard</button><button class="primary" id="saveMeal">Save meal</button></div>
+    <div class="btns"><button id="discard">Discard</button><button class="primary" id="saveMeal">${draft.editId ? 'Save changes' : 'Save meal'}</button></div>
   </div>`;
 }
 $('draft').addEventListener('input', e => {
@@ -408,6 +412,11 @@ $('draft').addEventListener('click', e => {
   else if (t.id === 'saveMeal') {
     const items = draft.items.filter(i => i.name.trim() || i.kcal);
     if (!items.length) { show('Add at least one food before saving.', true); return; }
+    if (draft.editId) {
+      const m = meals.find(x => x.id === draft.editId);
+      if (m) { m.items = items.map(i => { const o = { name: i.name, grams: i.grams }; K.forEach(k => o[k] = Math.round((+i[k] || 0) * 10) / 10); return o; }); m.qty = dq(); m.kcal = sum(items) * dq(); }
+      LS.set('cs_meals', meals); draft = null; renderDraft(); show(''); render(); return;
+    }
     const ts = (() => { const d = toDate(sel), n = new Date(); d.setHours(n.getHours(), n.getMinutes(), n.getSeconds()); return d.getTime(); })();
     meals.push({ id: Date.now(), ts, day: sel, kcal: sum(items) * dq(), qty: dq(), thumb: draft.thumb || '',
       items: items.map(i => { const o = { name: i.name, grams: i.grams }; K.forEach(k => o[k] = Math.round((+i[k] || 0) * 10) / 10); return o; }) });
