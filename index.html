@@ -13,11 +13,11 @@
 :root{--bg:#ffffff;--ink:#000000;--mute:#6b7685;--card:#fff;--line:#e3e8ef;--accent:#2f80ed;--on:#fff;--warn:#e5383b;color-scheme:light}
 :root[data-theme="dark"]{--bg:#000000;--ink:#ffffff;--mute:#9aa3ad;--card:#0c0c0c;--line:#2b2b2b;--accent:#5aa2ff;--on:#000000;--warn:#ff6b6b;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
+html,body{height:100%;margin:0;background:var(--bg)}
 body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
-.app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.app{position:fixed;inset:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);background:var(--bg)}
 .pages{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
 .pages::-webkit-scrollbar{display:none}
 .page{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;padding:0 16px 24px}
@@ -29,6 +29,13 @@ button{cursor:pointer}
 .top h1{font-size:18px;margin:0;font-weight:650}
 .top .brand h1{font-size:30px;font-weight:800;letter-spacing:-.5px;line-height:1;margin:0}
 .brand span{display:block;font-size:12px;line-height:1.15;font-weight:600;margin-top:4px}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;width:100%;max-width:360px;max-height:90dvh;overflow-y:auto}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mbtn{padding:14px 0;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+.mbtn.on,.cell.sel{background:var(--accent);color:var(--on);font-weight:650}
+.cell:disabled{opacity:.3}
+.sum div{margin:3px 0}
 .overlay{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding:env(safe-area-inset-top,0) 16px calc(24px + env(safe-area-inset-bottom,0))}
 .overlay>div{max-width:480px;margin:0 auto}
 .icon-btn{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--mute)}
@@ -37,7 +44,6 @@ button{cursor:pointer}
 .datenav .a:disabled{opacity:.35}
 .datenav .d{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:650}
 .mt{flex:1;text-align:center;font-weight:650}
-#dateIn{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 .total{padding:14px 0 4px}
 .total .num{font-size:60px;line-height:1;font-weight:700;letter-spacing:-2px;font-variant-numeric:tabular-nums}
 .total .unit{font-size:18px;color:var(--mute);margin-left:6px;letter-spacing:0;font-weight:500}
@@ -64,7 +70,12 @@ button{cursor:pointer}
 .btns button{flex:1;padding:12px;border-radius:12px;border:1px solid var(--line);background:none}
 .btns .primary{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:650}
 .thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--line);flex:none}
-.meal{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.meal{padding:10px 0;border-top:1px solid var(--line)}
+.mtop{display:flex;gap:12px;align-items:center}
+.dl{background:none;border:0;padding:0 0 0 6px;color:var(--accent);font-size:13px;text-decoration:underline}
+.det{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.drow{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:4px 0}
+.det .thumb{margin-bottom:6px}
 .meal:first-of-type{border-top:0}
 .meal .info{flex:1;min-width:0}
 .meal .names{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -102,11 +113,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
 <section class="page" id="pCal"><div>
   <div class="top"><h1>Calendar</h1></div>
-  <div class="datenav"><button class="a" id="mPrev" aria-label="Previous month">‹</button><div class="mt" id="mTitle"></div><button class="a" id="mNext" aria-label="Next month">›</button></div>
-  <div class="sub" id="mSum"></div>
+  <div class="datenav"><button class="a" id="mPrev" aria-label="Previous month">‹</button><button class="d" id="mTitle"></button><button class="a" id="mNext" aria-label="Next month">›</button></div>
   <div class="dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
   <div class="grid" id="grid"></div>
   <p class="fine">Tap a day to open it. Blue is under your goal, orange is close, red is over.</p>
+  <section class="card sum" id="mSum"></section>
 </div></section>
 
 <section class="page" id="pDay"><div>
@@ -114,7 +125,6 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <div class="datenav">
     <button class="a" id="dPrev" aria-label="Previous day">‹</button>
     <button class="d" id="dateBtn"></button>
-    <input type="date" id="dateIn" aria-label="Pick a date">
     <button class="a" id="dNext" aria-label="Next day">›</button>
   </div>
   <section class="total" aria-live="polite">
@@ -133,7 +143,6 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 <section class="page" id="pIns"><div>
   <div class="top"><h1>Insights</h1></div>
   <div class="seg" id="seg"><button data-r="1">Day</button><button data-r="7">Week</button><button data-r="30">Month</button></div>
-  <div class="sub" id="insRange"></div>
   <section class="card" id="insStats"></section>
   <section class="card"><h2>Calories per day</h2><div class="chart" id="chart"></div></section>
   <div class="h2" style="margin-top:18px">What to eat</div>
@@ -144,6 +153,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 </div>
 <nav class="tabs"><button data-i="0">Calendar</button><button data-i="1">Day</button><button data-i="2">Insights</button></nav>
 </div>
+
+<div class="modal" id="picker" hidden><div class="sheet"><div id="pkBody"></div><div class="btns"><button id="pkClose">Close</button></div></div></div>
 
 <div class="overlay" id="settingsView" hidden><div>
   <div class="top"><button class="icon-btn" id="backBtn">‹ Back</button><h1>Settings</h1><span style="width:70px"></span></div>
@@ -176,6 +187,8 @@ const today = () => dayKey(Date.now());
 const toDate = k => new Date(k + 'T12:00');
 const addDays = (k, n) => { const d = toDate(k); d.setDate(d.getDate() + n); return dayKey(d); };
 let sel = today(), cal = new Date(); cal.setDate(1);
+const openMeals = new Set();
+const fmtTime = ts => { const d = new Date(ts); let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`; };
 const r0 = n => Math.round(n || 0);
 const STOPS = [[.75, [47,128,237]], [1, [245,158,11]], [1.2, [229,56,59]]];
 function barColor(r){
@@ -209,8 +222,7 @@ function render(){ const by = byDay(); renderDay(by); renderCal(by); renderIns(b
 
 function renderDay(by){
   const t = by[sel] || { kcal:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0 }, tg = targets(), goal = +cfg.goal || 0;
-  $('dateBtn').textContent = label(sel);
-  $('dateIn').max = today();
+  $('dateBtn').textContent = label(sel) + ' ▾';
   $('dNext').disabled = sel >= today();
   $('dayNum').textContent = r0(t.kcal).toLocaleString();
   $('unitTxt').textContent = sel === today() ? 'kcal today' : 'kcal';
@@ -223,17 +235,23 @@ function renderDay(by){
   }
   $('macros').innerHTML = M.map(f => `<div class="mrow"><span>${NAME[f]}</span><b>${r0(t[f])} / ${r0(tg[f])} g</b><div class="bar"><i style="width:${Math.min(100, t[f] / tg[f] * 100)}%;background:${barColor(t[f] / tg[f])}"></i></div></div>`).join('');
   const list = meals.filter(m => m.day === sel).sort((a, b) => b.ts - a.ts);
-  $('log').innerHTML = list.length ? list.map(m => `
-    <div class="meal"><img class="thumb" alt="" src="${m.thumb || ''}">
+  $('log').innerHTML = list.length ? list.map(m => {
+    const open = openMeals.has(m.id), tot = {};
+    M.forEach(f => tot[f] = r0(m.items.reduce((a, i) => a + (+i[f] || 0), 0)));
+    const det = open ? `<div class="det">${m.thumb ? `<img class="thumb" alt="" src="${m.thumb}">` : ''}
+      ${m.items.map(i => `<div class="drow"><span>${esc(i.name || 'Item')}</span><span>${r0(i.grams)} g, ${r0(i.kcal)} kcal</span></div>`).join('')}
+      <div class="fine">${M.map(f => `${NAME[f]} ${tot[f]} g`).join(', ')}</div></div>` : '';
+    return `<div class="meal"><div class="mtop">
       <div class="info"><div class="names">${esc(m.items.map(i => i.name).join(', ') || 'Meal')}</div>
-      <div class="time">${new Date(m.ts).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })}</div></div>
-      <div class="kcal">${m.kcal}</div>
-      <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>`).join('') : '<div class="empty">No meals logged for this day.</div>';
+      <div class="time">${fmtTime(m.ts)} <button class="dl" data-d="${m.id}">${open ? 'Hide details' : 'Show details'}</button></div></div>
+      <div class="kcal">${m.kcal} kcal</div>
+      <button class="del" data-id="${m.id}" aria-label="Delete meal">✕</button></div>${det}</div>`;
+  }).join('') : '<div class="empty">No meals logged for this day.</div>';
 }
 
 function renderCal(by){
   const y = cal.getFullYear(), mo = cal.getMonth(), goal = +cfg.goal || 0;
-  $('mTitle').textContent = cal.toLocaleDateString([], { month:'long', year:'numeric' });
+  $('mTitle').textContent = cal.toLocaleDateString([], { month:'long', year:'numeric' }) + ' ▾';
   let h = '<div></div>'.repeat(new Date(y, mo, 1).getDay()), tot = 0, n = 0;
   for (let d = 1, e = new Date(y, mo + 1, 0).getDate(); d <= e; d++) {
     const k = dayKey(new Date(y, mo, d)), t = by[k], kc = t ? r0(t.kcal) : 0;
@@ -241,7 +259,7 @@ function renderCal(by){
     h += `<button class="cell${k === today() ? ' now' : ''}" data-k="${k}"${t ? ` style="background:color-mix(in srgb,${barColor(kc / (goal || 2000))} 22%,var(--card))"` : ''}><span>${d}</span><em>${t ? kc : ''}</em></button>`;
   }
   $('grid').innerHTML = h;
-  $('mSum').textContent = n ? `${tot.toLocaleString()} kcal this month, ${r0(tot / n).toLocaleString()} a day on ${n} logged day${n > 1 ? 's' : ''}.` : 'No meals logged this month.';
+  $('mSum').innerHTML = n ? `<h2>This month</h2><div>Total: <b>${tot.toLocaleString()} kcal</b></div><div>Average: <b>${r0(tot / n).toLocaleString()} kcal a day</b></div><div>Days logged: <b>${n}</b></div>` : '<h2>This month</h2><div class="empty">No meals logged this month.</div>';
 }
 
 function recs(a, g){
@@ -264,7 +282,7 @@ function renderIns(by){
   const days = []; for (let i = range - 1; i >= 0; i--) days.push(addDays(today(), -i));
   const logged = days.filter(k => by[k]), tg = targets(), goal = +cfg.goal || 0, a = {};
   K.forEach(f => a[f] = logged.length ? logged.reduce((s, k) => s + by[k][f], 0) / logged.length : 0);
-  $('insRange').textContent = (range === 1 ? 'Today' : `Last ${range} days`) + `: ${logged.length} day${logged.length === 1 ? '' : 's'} logged`;
+
   if (!logged.length) {
     $('insStats').innerHTML = '<div class="empty">Log a few meals to see your averages here.</div>';
     $('chart').innerHTML = ''; $('recs').innerHTML = '<div class="card empty">Tips will appear once you have logged meals.</div>'; return;
@@ -284,15 +302,55 @@ addEventListener('resize', () => goto(Math.round(pages.scrollLeft / pages.client
 
 $('dPrev').onclick = () => { sel = addDays(sel, -1); render(); };
 $('dNext').onclick = () => { if (sel < today()) { sel = addDays(sel, 1); render(); } };
-$('dateBtn').onclick = () => { $('dateIn').value = sel; try { $('dateIn').showPicker(); } catch { $('dateIn').click(); } };
-$('dateIn').onchange = () => { if ($('dateIn').value) { sel = $('dateIn').value > today() ? today() : $('dateIn').value; render(); } };
+$('dateBtn').onclick = () => openPicker('day');
+$('mTitle').onclick = () => openPicker('ym');
 $('mPrev').onclick = () => { cal.setMonth(cal.getMonth() - 1); render(); };
 $('mNext').onclick = () => { cal.setMonth(cal.getMonth() + 1); render(); };
 $('grid').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { sel = b.dataset.k; render(); goto(1); } };
 $('seg').onclick = e => { if (e.target.dataset.r) { range = +e.target.dataset.r; render(); } };
 $('log').onclick = e => {
-  const id = e.target.dataset.id;
-  if (id && confirm('Delete this meal?')) { meals = meals.filter(m => String(m.id) !== id); LS.set('cs_meals', meals); render(); }
+  const d = e.target.dataset.d, id = e.target.dataset.id;
+  if (d) { const n = +d; openMeals.has(n) ? openMeals.delete(n) : openMeals.add(n); render(); }
+  else if (id && confirm('Delete this meal?')) { meals = meals.filter(m => String(m.id) !== id); LS.set('cs_meals', meals); render(); }
+};
+
+/* ---------- Month / year / day picker ---------- */
+const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString([], { month:'short' }));
+let pk = null;
+function openPicker(mode){
+  const d = mode === 'day' ? toDate(sel) : new Date(cal);
+  pk = { mode, y: d.getFullYear(), m: d.getMonth(), view: mode === 'day' ? 'days' : 'ym' };
+  $('picker').hidden = false; renderPicker();
+}
+function renderPicker(){
+  let h;
+  if (pk.view === 'ym') {
+    h = `<div class="datenav"><button class="a" data-p="y-" aria-label="Previous year">‹</button><div class="mt">${pk.y}</div><button class="a" data-p="y+" aria-label="Next year">›</button></div>
+      <div class="mgrid">${MONTHS.map((n, i) => `<button class="mbtn${i === pk.m ? ' on' : ''}" data-pm="${i}">${n}</button>`).join('')}</div>`;
+  } else {
+    const first = new Date(pk.y, pk.m, 1), cnt = new Date(pk.y, pk.m + 1, 0).getDate();
+    let g = '<div></div>'.repeat(first.getDay());
+    for (let d = 1; d <= cnt; d++) { const k = dayKey(new Date(pk.y, pk.m, d)); g += `<button class="cell${k === sel ? ' sel' : ''}" data-pd="${k}"${k > today() ? ' disabled' : ''}>${d}</button>`; }
+    h = `<div class="datenav"><button class="a" data-p="m-" aria-label="Previous month">‹</button><button class="d" data-p="ym">${first.toLocaleDateString([], { month:'long', year:'numeric' })} ▾</button><button class="a" data-p="m+" aria-label="Next month">›</button></div>
+      <div class="dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="grid">${g}</div>`;
+  }
+  $('pkBody').innerHTML = h;
+}
+$('picker').onclick = e => {
+  const t = e.target, p = t.dataset.p;
+  if (t.id === 'picker' || t.id === 'pkClose') { $('picker').hidden = true; return; }
+  if (p === 'y-') pk.y--;
+  else if (p === 'y+') pk.y++;
+  else if (p === 'm-' || p === 'm+') { const d = new Date(pk.y, pk.m + (p === 'm+' ? 1 : -1), 1); pk.y = d.getFullYear(); pk.m = d.getMonth(); }
+  else if (p === 'ym') pk.view = 'ym';
+  else if (t.dataset.pm !== undefined) {
+    pk.m = +t.dataset.pm;
+    if (pk.mode === 'ym') { cal = new Date(pk.y, pk.m, 1); $('picker').hidden = true; render(); return; }
+    pk.view = 'days';
+  }
+  else if (t.dataset.pd) { sel = t.dataset.pd; $('picker').hidden = true; render(); return; }
+  else return;
+  renderPicker();
 };
 
 /* ---------- Meal card ---------- */
@@ -338,7 +396,7 @@ $('draft').addEventListener('click', e => {
   else if (t.id === 'saveMeal') {
     const items = draft.items.filter(i => i.name.trim() || i.kcal);
     if (!items.length) { show('Add at least one food before saving.', true); return; }
-    const ts = sel === today() ? Date.now() : toDate(sel).getTime();
+    const ts = (() => { const d = toDate(sel), n = new Date(); d.setHours(n.getHours(), n.getMinutes(), n.getSeconds()); return d.getTime(); })();
     meals.push({ id: Date.now(), ts, day: sel, kcal: sum(items), thumb: draft.thumb || '',
       items: items.map(i => { const o = { name: i.name, grams: i.grams }; K.forEach(k => o[k] = Math.round((+i[k] || 0) * 10) / 10); return o; }) });
     LS.set('cs_meals', meals); draft = null; renderDraft(); show(''); render();
